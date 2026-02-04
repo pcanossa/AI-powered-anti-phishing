@@ -59,7 +59,7 @@ O fluxo no n8n é responsável por buscar, sanitizar e enviar os dados para a IA
 
 ---
 
-## **Implementação n8n**
+## ⛓️ **Implementação n8n**
 
 A implementação no n8n, seguiu os seguintes passos:
 * [Criação do container pelo Docker](#1-criação-do-container-pelo-docker)
@@ -91,7 +91,7 @@ A criação de nós foi estruturada em 6 nós, da seguinte forma:
   - [**⚙️ Configurações e Implementação**](#️-configurações-e-implementação)
     - [1. Workflow n8n](#1-workflow-n8n)
     - [2. Wazuh Manager](#2-wazuh-manager)
-  - [**Implementação n8n**](#implementação-n8n)
+  - [⛓️ **Implementação n8n**](#️-implementação-n8n)
   - [1. Criação do container pelo Docker](#1-criação-do-container-pelo-docker)
   - [2. Criação e configuração de nós](#2-criação-e-configuração-de-nós)
     - [2.1. Nó de disparo do workflow](#21-nó-de-disparo-do-workflow)
@@ -100,7 +100,7 @@ A criação de nós foi estruturada em 6 nós, da seguinte forma:
     - [2.4. Nó de análise dos dados do email pela LLM](#24-nó-de-análise-dos-dados-do-email-pela-llm)
     - [2.5. Nó de formataçao da saída da LLM em JSON](#25-nó-de-formataçao-da-saída-da-llm-em-json)
     - [2.6. Nó de envio dos dados para Wazuh Manager](#26-nó-de-envio-dos-dados-para-wazuh-manager)
-  - [**Implementação Wazuh Manager**](#implementação-wazuh-manager)
+  - [📊 **Implementação Wazuh Manager**](#-implementação-wazuh-manager)
     - [1. Configuração de syslog por UDP](#1-configuração-de-syslog-por-udp)
     - [2. Configuração de decoders](#2-configuração-de-decoders)
     - [3. Configuração de rules](#3-configuração-de-rules)
@@ -305,7 +305,7 @@ return items;
 
 ---
 
-## **Implementação Wazuh Manager**
+## 📊 **Implementação Wazuh Manager**
 
 A implementação no Wazuh Manager, seguiu os seguintes passos:
 * [Configuração de syslog por UDP](#1-configuração-de-syslog-por-udp)
