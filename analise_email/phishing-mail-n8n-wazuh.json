@@ -1,0 +1,218 @@
+{
+  "name": "Phihishing Email Analysis to Wazuh",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "917cbfae-7493-4164-8aa0-bd95d9a4df19",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "model": "llama3.1:8b",
+        "options": {
+          "format": "default"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        736,
+        80
+      ],
+      "id": "25fed751-6799-419f-8422-4ad8cf62717c",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "6fXAMIu6DLE0lmFM",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://graph.microsoft.com/v1.0/me/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "=$filter",
+              "value": "=receivedDateTime ge {{ $now.minus({ minutes: 5, seconds: 30 }).toISO() }}"
+            },
+            {
+              "name": "=$expand",
+              "value": "=singleValueExtendedProperties($filter=id eq 'String 0x007D')"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        272,
+        -112
+      ],
+      "id": "2f4d3564-f743-408b-a52d-a0452d56a494",
+      "name": "HTTP Request - Serviço Outlook",
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "IGtuS8lTy4qRWb7w",
+          "name": "Microsoft account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verifica se a API retornou dados\nconst response = $input.first().json;\nif (!response.value || !Array.isArray(response.value)) {\n  return []; \n}\n\n// Mapeia a lista para itens individuais\nreturn response.value.map(email => {\n  // Extrai o header\n  const rawHeaders = $input.first().json.value[0].singleValueExtendedProperties[0].value;\n  \n  return {\n    json: {\n      assunto: email.subject,\n      de: email.from?.emailAddress?.address,\n      data: email.receivedDateTime,\n      // Usa 'email' em vez de buscar no input global fixo\n      anexos: email.hasAttachments, \n      headers: rawHeaders, \n      corpo: email.body?.content || email.bodyPreview || \"Sem corpo\"\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        -112
+      ],
+      "id": "6c0f8e80-45bb-4404-bbe9-b927b1faac9d",
+      "name": "Formatação do email em JSON"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  \n  // 1. Captura a resposta bruta\n  const rawText = item.json.response?.generations?.[0]?.[0]?.text || item.json.text || \"\";\n\n  let targetText = rawText;\n\n  //  // 2. Regra da IA de indicar o início do JSON, através do termo \"OBJETO JSON->\", seleção do contepudo que vem após ele \n  if (rawText.includes(\"OBJETO JSON->\")) {\n    const parts = rawText.split(\"OBJETO JSON->\");\n    targetText = parts[parts.length - 1]; // Pega sempre o último pedaço\n  }\n\n  // 3. Agora procuramos o JSON apenas nesse pedaço final limpo\n  const jsonMatch = targetText.match(/\\{[\\s\\S]*\\}/);\n\n  let outputData = {};\n\n  if (jsonMatch) {\n    try {\n      const cleanJsonString = jsonMatch[0];\n      const parsedData = JSON.parse(cleanJsonString);\n\n      outputData = {\n        ...parsedData,\n        _analysis_status: \"success\"\n      };\n    } catch (error) {\n      outputData = {\n        error: \"Estrutura JSON inválida (Parse Error)\",\n        raw_fragment: targetText, // Ajuda a debugar vendo o que sobrou\n        _analysis_status: \"error\"\n      };\n    }\n  } else {\n    outputData = {\n      error: \"Nenhum bloco JSON encontrado após o marcador\",\n      raw_output: rawText,\n      _analysis_status: \"empty\"\n    };\n  }\n\n  return {\n    json: outputData\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        -112
+      ],
+      "id": "9b3db812-2f60-4a5a-8aca-56dc3e633ce8",
+      "name": "Formatação da Saída da LLM em JSON"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dgram = require('dgram');\n\nconst items = $input.all();\nconst client = dgram.createSocket('udp4');\n\n// CONFIGURAÇÕES\nconst WAZUH_IP = <IP DO SERVIDOR WAZUH MANAGER>; \nconst WAZUH_PORT = 514;\n\nitems.forEach(item => {\n  // 1. Gera o JSON limpo\n  const jsonContent = JSON.stringify(item.json);\n  \n  // 2. Cria o Header Syslog (PRI + Tag)\n  // <13> = Facility User (1) + Severity Notice (5)\n  // Adicionamos \"n8n:\" para o Wazuh saber quem enviou\n  const syslogMessage = `<13>n8n: ${jsonContent}`;\n  \n  const message = Buffer.from(syslogMessage);\n  \n  client.send(message, WAZUH_PORT, WAZUH_IP, (err) => {\n    if (err) console.error('Erro UDP:', err);\n  });\n});\n\n// Fecha a conexão\nsetTimeout(() => {\n  client.close();\n}, 1000);\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        -112
+      ],
+      "id": "6bc8e6e1-9d41-4dc4-bc61-238ee97f7052",
+      "name": "Envio para o Wazuh Manager"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você é um Analista de Segurança Defensiva (Blue Team) focado em Threat Intelligence.\n\n# ATIVIDADE\n* Analise os artefatos do e-mail buscando inconsistências técnicas.\n* Retorne o resultado da análise em um objeto no formato **JSON** ao dinal da análise.\n* Construa o ojeto JSON no idioma português Brasil.\n1. Verifique se o 'Authentication-Results' indica falha (FAIL/SOFTFAIL) em SPF, DKIM ou DMARC.\n2. Analise a cadeia 'Received'. O IP de origem pertence à organização do remetente ou é um IP residencial/hospedagem barata?\n3. Compare o 'From' com o 'Return-Path'.\n4. Busque gatilhos psicológicos no corpo (urgência, medo, autoridade).\n5. Seja sucinto, e foque na construçao do objeto JSON, sendo ele o foco.\n6. Ao final da análise, indique o início do objeto JSON com o termo \"OBJETO JSON->\".\n\n## SAÍDA OBRIGATÓRIA\n* Após análise, forneça o seguinte objeto JSON na estrutura especificada:\n* Saída Obrigatória apenas em formato JSON como no modelo abaixo:\nOBJETO JSON->\n{\n  \"IP_remetente\": (número do IP de \"de\"),\n  \"IP_cabecalho\": (número do IP em headers),\n  \"dominio_remetente\": (domínio do email de \"de\"),\n  \"dominio_cabecalho\": (domínio do email em headers)\n  \"phishing_score\": (inteiro 0-10),\n  \"is_malicious\": (boolean),\n  \"main_evidence\": [\"evidencia 1\", \"evidencia 2\"],\n  \"recommended_action\": \"BLOCK\" | \"QUARANTINE\" | \"ALLOW\"\n}\n\n## MODELO DE OBJETO JSON:\n{\n  \"IP_remetente\": \"200.210.15.7\",\n  \"IP_cabecalho\": \"200.210.15.7\",\n  \"dominio_remetente\": \"gmail.com\",\n  \"dominio_cabecalho\": \"gmail.com\"\n  \"phishing_score\": 0,\n  \"is_malicious\": false,\n  \"main_evidence\": [\"SPF=pass\", \"DKIM=pass\",\"endereço do remtente igual ao do cabeçalho\"],\n  \"recommended_action\": \"PASS\" \n}\n\n## DADOS DO E-MAIL\n- Remetente Aparente:{{ $json.de }}\n- Assunto:{{ $json.assunto }}\n- Data: {{ $json.data }}\n- Presença de Anexos: {{ $json.anexos }}\n\n### HEADERS TÉCNICOS (SPF/DKIM/Received):\n\"\"\"\n{{ $json.headers }}\n\"\"\"\n\n### CORPO DA MENSAGEM:\n\"\"\"\n{{ $json.corpo }}\n\"\"\"\n\n",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        768,
+        -112
+      ],
+      "id": "d6365488-9301-403e-9d03-1747bce0db57",
+      "name": "Análise do email pela LLM"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Serviço Outlook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Análise do email pela LLM",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Serviço Outlook": {
+      "main": [
+        [
+          {
+            "node": "Formatação do email em JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatação do email em JSON": {
+      "main": [
+        [
+          {
+            "node": "Análise do email pela LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatação da Saída da LLM em JSON": {
+      "main": [
+        [
+          {
+            "node": "Envio para o Wazuh Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Análise do email pela LLM": {
+      "main": [
+        [
+          {
+            "node": "Formatação da Saída da LLM em JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "ca30ba1c-6932-44a6-8d63-b214ebec5cf8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d7451ca5a5b8682b36e3bdcc7aaa493e388e17ce5d320ff7b591c73f367226df"
+  },
+  "id": "QJddUtmWB6w_qDywySBql",
+  "tags": []
+}
