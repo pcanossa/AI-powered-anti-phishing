@@ -10,11 +10,11 @@ O objetivo é reduzir a fadiga de alertas dos analistas de SOC, automatizando a 
 
 ---
 
-## Etrutura do Repositório
+## Estrutura do Repositório
 
 - [**Pipeline de Defesa Anti-Phishing | AI-Powered**](#pipeline-de-defesa-anti-phishing--ai-powered)
   - [**📋 Sobre o Projeto**](#-sobre-o-projeto)
-  - [Etrutura do Repositório](#etrutura-do-repositório)
+  - [Estrutura do Repositório](#estrutura-do-repositório)
   - [**🏗️ Arquitetura da Solução**](#️-arquitetura-da-solução)
   - [**🚀 Tecnologias Utilizadas**](#-tecnologias-utilizadas)
   - [**⚙️ Configurações e Implementação**](#️-configurações-e-implementação)
