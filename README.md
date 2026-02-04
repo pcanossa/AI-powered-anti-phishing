@@ -109,28 +109,12 @@ Serão solicitados dados iniciais de autenticação, que será solicitado para p
 ## 2. Criação e configuração de nós
 
 A criação de nós foi estruturada em 6 nós, da seguinte forma:
-- [**Pipeline de Defesa Anti-Phishing | AI-Powered**](#pipeline-de-defesa-anti-phishing--ai-powered)
-  - [**📋 Sobre o Projeto**](#-sobre-o-projeto)
-  - [Estrutura do Repositório](#estrutura-do-repositório)
-  - [**🏗️ Arquitetura da Solução**](#️-arquitetura-da-solução)
-  - [**🚀 Tecnologias Utilizadas**](#-tecnologias-utilizadas)
-  - [**⚙️ Configurações e Implementação**](#️-configurações-e-implementação)
-    - [1. Workflow n8n](#1-workflow-n8n)
-    - [2. Wazuh Manager](#2-wazuh-manager)
-  - [⛓️**Implementação n8n**](#️implementação-n8n)
-  - [1. Criação do container pelo Docker](#1-criação-do-container-pelo-docker)
-  - [2. Criação e configuração de nós](#2-criação-e-configuração-de-nós)
-    - [2.1. Nó de disparo do workflow](#21-nó-de-disparo-do-workflow)
-    - [2.2. Nó de `HTTP Request` para acesso e obtenção dos emails](#22-nó-de-http-request-para-acesso-e-obtenção-dos-emails)
-    - [2.3. Nó de formatação dos dados obtidos pelo email em JSON](#23-nó-de-formatação-dos-dados-obtidos-pelo-email-em-json)
-    - [2.4. Nó de análise dos dados do email pela LLM](#24-nó-de-análise-dos-dados-do-email-pela-llm)
-    - [2.5. Nó de formataçao da saída da LLM em JSON](#25-nó-de-formataçao-da-saída-da-llm-em-json)
-    - [2.6. Nó de envio dos dados para Wazuh Manager](#26-nó-de-envio-dos-dados-para-wazuh-manager)
-  - [📊**Implementação Wazuh Manager**](#implementação-wazuh-manager)
-    - [1. Configuração de syslog por UDP](#1-configuração-de-syslog-por-udp)
-    - [2. Configuração de decoders](#2-configuração-de-decoders)
-    - [3. Configuração de rules](#3-configuração-de-rules)
-  - [🤝 Contribuições e Melhorias](#-contribuições-e-melhorias)
+* [Nó de disparo do workflow](#21-nó-de-disparo-do-workflow)
+* [Nó de `HTTP Request` para acesso e obtenção dos emails](#22-nó-de-http-request-para-acesso-e-obtenção-dos-emails)
+* [Nó de formatação dos dados obtidos pelo email em JSON](#23-nó-de-formatação-dos-dados-obtidos-pelo-email-em-json)
+* [Nó de análise dos dados do email pela LLM](#24-nó-de-análise-dos-dados-do-email-pela-llm)
+* [Nó de formataçao da saída da LLM em JSON](#25-nó-de-formataçao-da-saída-da-llm-em-json)
+* [Nó de envio dos dados para Wazuh Manager](#26-nó-de-envio-dos-dados-para-wazuh-manager)
 
 ![Workflow](./images/workflow.png)
 
@@ -164,7 +148,7 @@ Para a criação e configuração do nó:
 * * Parâmetros da Query 1
   * Name: `$expand`
   * Value: `singleValueExtendedProperties($filter=id eq 'String 0x007D')` 
-s
+
 ### 2.3. Nó de formatação dos dados obtidos pelo email em JSON
 Esse nó, filtra os principais dados obtidos, para inclusão do JSON formatado, e posterior análise pela LLM.
 Para a criação e configuração do nó:
