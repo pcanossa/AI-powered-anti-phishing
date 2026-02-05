@@ -61,8 +61,8 @@ O documento JSON de setup do workflow, pode ser acessado em [phishing-mail-n8n-w
 
 Para implementação inicialmente clone o repositório:
 ```bash
-git clone
-cd 
+git clone https://github.com/pcanossa/AI-powered-anti-phishing
+cd AI-powered-anti-phishing
 ```
 
 ### 1. Workflow n8n
