@@ -1,0 +1,13 @@
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - NODE_FUNCTION_ALLOW_BUILTIN=dgram
+    volumes:
+      - C:\n8n:/home/node/.n8n
+    restart: always
